@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type AuthInterface interface {
+type AuthInterface interface { //создание интерфейса AuthInterface
 	CreateAuth(string, *TokenDetails) error
 	FetchAuth(string) (string, error)
 	DeleteRefresh(string) error
@@ -18,7 +18,7 @@ type service struct {
 	client *redis.Client
 }
 
-var _ AuthInterface = &service{}
+var _ AuthInterface = &service{}  //создание переменной, AuthInterface - указатель на type
 
 func NewAuth(client *redis.Client) *service {
 	return &service{client: client}
@@ -38,9 +38,9 @@ type TokenDetails struct {
 	RtExpires    int64
 }
 
-//Save token metadata to Redis
+//Сохранение метаданных токенов в Redis
 func (tk *service) CreateAuth(userId string, td *TokenDetails) error {
-	at := time.Unix(td.AtExpires, 0) //converting Unix to UTC(to Time object)
+	at := time.Unix(td.AtExpires, 0) //конвертирование Unix в UTC (объет "Время")
 	rt := time.Unix(td.RtExpires, 0)
 	now := time.Now()
 
@@ -58,7 +58,7 @@ func (tk *service) CreateAuth(userId string, td *TokenDetails) error {
 	return nil
 }
 
-//Check the metadata saved
+//Проверка сохраненных метаданных
 func (tk *service) FetchAuth(tokenUuid string) (string, error) {
 	userid, err := tk.client.Get(tokenUuid).Result()
 	if err != nil {
@@ -67,21 +67,21 @@ func (tk *service) FetchAuth(tokenUuid string) (string, error) {
 	return userid, nil
 }
 
-//Once a user row in the token table
+//Пользовательская строка в таблице токенов
 func (tk *service) DeleteTokens(authD *AccessDetails) error {
-	//get the refresh uuid
+	//получение refresh uuid
 	refreshUuid := fmt.Sprintf("%s++%s", authD.TokenUuid, authD.UserId)
-	//delete access token
+	//удаление access токен
 	deletedAt, err := tk.client.Del(authD.TokenUuid).Result()
 	if err != nil {
 		return err
 	}
-	//delete refresh token
+	//удаление refresh токен
 	deletedRt, err := tk.client.Del(refreshUuid).Result()
 	if err != nil {
 		return err
 	}
-	//When the record is deleted, the return value is 1
+	//Когда запись удалена, возвращаемое значение 1
 	if deletedAt != 1 || deletedRt != 1 {
 		return errors.New("something went wrong")
 	}
@@ -89,7 +89,7 @@ func (tk *service) DeleteTokens(authD *AccessDetails) error {
 }
 
 func (tk *service) DeleteRefresh(refreshUuid string) error {
-	//delete refresh token
+	//удаление refresh токен
 	deleted, err := tk.client.Del(refreshUuid).Result()
 	if err != nil || deleted == 0 {
 		return err
