@@ -24,7 +24,7 @@ type User struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
-//In memory user
+//User
 var user = User {
 	ID:           "1",
 	Username: "username",
@@ -43,7 +43,7 @@ func (h *profileHandler) Login(c *gin.Context) {
 		c.JSON(http.StatusUnprocessableEntity, "Invalid json provided")
 		return
 	}
-	//compare the user from the request, with the one we defined:
+	//сравнивание пользователя из запроса с тем, что мы создали:
 	if user.Username != u.Username || user.Password != u.Password {
 		c.JSON(http.StatusUnauthorized, "Please provide valid login details")
 		return
@@ -65,7 +65,7 @@ func (h *profileHandler) Login(c *gin.Context) {
 }
 
 func (h *profileHandler) Logout(c *gin.Context) {
-	//If metadata is passed and the tokens valid, delete them from the redis store
+	//Если метаданные переданы и токены действительны, удаление их из хранилища Redis
 	metadata, _ := h.tk.ExtractTokenMetadata(c.Request)
 	if metadata != nil {
 		deleteErr := h.rd.DeleteTokens(metadata)
@@ -95,7 +95,7 @@ func (h *profileHandler) CreateTodo(c *gin.Context) {
 	}
 	td.UserID = userId
 
-	//you can proceed to save the  to a database
+	//тут можно создать базу данных
 
 	c.JSON(http.StatusCreated, td)
 }
@@ -109,27 +109,27 @@ func (h *profileHandler) Refresh(c *gin.Context) {
 	}
 	refreshToken := mapToken["refresh_token"]
 
-	//verify the token
+	//верификация токена
 	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 		return []byte(os.Getenv("REFRESH_SECRET")), nil
 	})
-	//if there is an error, the token must have expired
+	//если есть ошибка, токен просрочен
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, "Refresh token expired")
 		return
 	}
-	//is token valid?
+	//Валидный ли токен?
 	if _, ok := token.Claims.(jwt.Claims); !ok && !token.Valid {
 		c.JSON(http.StatusUnauthorized, err)
 		return
 	}
-	//Since token is valid, get the uuid:
-	claims, ok := token.Claims.(jwt.MapClaims) //the token claims should conform to MapClaims
+	//Пока токен валидный, забираем uuid
+	claims, ok := token.Claims.(jwt.MapClaims) //Токен должен соответствовать MapClaims
 	if ok && token.Valid {
-		refreshUuid, ok := claims["refresh_uuid"].(string) //convert the interface to string
+		refreshUuid, ok := claims["refresh_uuid"].(string) //преобразование интерфейса в строку
 		if !ok {
 			c.JSON(http.StatusUnprocessableEntity, err)
 			return
@@ -139,19 +139,19 @@ func (h *profileHandler) Refresh(c *gin.Context) {
 			c.JSON(http.StatusUnprocessableEntity, "unauthorized")
 			return
 		}
-		//Delete the previous Refresh Token
+		//Удаление предшествующего refresh токена
 		delErr := h.rd.DeleteRefresh(refreshUuid)
 		if delErr != nil { //if any goes wrong
 			c.JSON(http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		//Create new pairs of refresh and access tokens
+		//Создание новой пары refresh - access токенов
 		ts, createErr := h.tk.CreateToken(userId)
 		if  createErr != nil {
 			c.JSON(http.StatusForbidden, createErr.Error())
 			return
 		}
-		//save the tokens metadata to redis
+		//сохранение метаданных токенов в redis
 		saveErr := h.rd.CreateAuth(userId, ts)
 		if saveErr != nil {
 			c.JSON(http.StatusForbidden, saveErr.Error())
