@@ -22,19 +22,19 @@ type TokenInterface interface {
 	ExtractTokenMetadata(*http.Request) (*AccessDetails, error)
 }
 
-//Token implements the TokenInterface
+//Токен принадлежит интерфейсу TokenInterface
 var _ TokenInterface = &tokenservice{}
 
 func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 	td := &TokenDetails{}
-	td.AtExpires = time.Now().Add(time.Minute * 30).Unix() //expires after 30 min
+	td.AtExpires = time.Now().Add(time.Minute * 30).Unix() //истекает через 30 минут
 	td.TokenUuid = uuid.NewV4().String()
 
 	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
 	td.RefreshUuid = td.TokenUuid + "++" + userId
 
 	var err error
-	//Creating Access Token
+	//Создание access токена
 	atClaims := jwt.MapClaims{}
 	atClaims["access_uuid"] = td.TokenUuid
 	atClaims["user_id"] = userId
@@ -45,7 +45,7 @@ func (t *tokenservice) CreateToken(userId string) (*TokenDetails, error) {
 		return nil, err
 	}
 
-	//Creating Refresh Token
+	//Создание refresh токена
 	td.RtExpires = time.Now().Add(time.Hour * 24 * 7).Unix()
 	td.RefreshUuid = td.TokenUuid + "++" + userId
 
@@ -87,7 +87,7 @@ func verifyToken(r *http.Request) (*jwt.Token, error) {
 	return token, nil
 }
 
-//get the token from the request body
+//получение токена из запроса 
 func extractToken(r *http.Request) string {
 	bearToken := r.Header.Get("Authorization")
 	strArr := strings.Split(bearToken, " ")
